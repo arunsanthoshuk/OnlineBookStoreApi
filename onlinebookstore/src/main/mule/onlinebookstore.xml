@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
+    <http:listener-config name="onlinebookstore-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="onlinebookstore-config" api="resource::89b2fe90-3783-4634-9965-72638d66c166:onlinebookstore:1.0.4:raml:zip:onlinebookstore.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="7e6b2b4e-e74e-4b05-bade-f99b2e1ba647" />
+	<api-gateway:autodiscovery apiId="19357282" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="cc58db65-79c3-4a10-8803-d3d94978647d" flowRef="onlinebookstore-main" />
+	<flow name="onlinebookstore-main">
+        <http:listener config-ref="onlinebookstore-httpListenerConfig" path="/123/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="onlinebookstore-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="onlinebookstore-console">
+        <http:listener config-ref="onlinebookstore-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="onlinebookstore-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="put:\books\(isbn):application\json:onlinebookstore-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="isbn"><![CDATA[attributes.uriParams.'isbn']]></ee:set-variable>
+				<ee:set-variable variableName="requestBody" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"title" : payload.title default"",
+	"author" : payload.author default "",
+	"publicationYear" : payload.publicationYear default"",
+	"price" : payload.price default""
+	}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <http:request method="GET" doc:name="Request" doc:id="9981f2ec-431b-4b09-808f-24380e8f9a73" config-ref="HTTP_Request_configuration" url="http://bookeapi.us-e2.cloudhub.io/retrieve" />
+	<!--  &#45;&#45;	<ee:transform doc:name="filter" doc:id="b005e4fd-c299-4d72-87b6-60b64b63104e">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+-&#45;&#45;
+payload  filter ((item, index) -> vars.isbn contains  item.isbn) ]]></ee:set-payload>
+			</ee:message>
+		</ee:transform> -->
+		<ee:transform doc:name="Transform Message" doc:id="82fb2dc3-9264-408d-8f9f-9d7f5663dfbb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[
+%dw 2.0
+output application/json
+---
+payload filter ((item, index) -> vars.isbn contains  item.isbn) map ((it, index) -> {
+    "title" : (if(sizeOf(vars.requestBody.title)>0) vars.requestBody.title else it.title),
+    "author" : (if(sizeOf(vars.requestBody.author)>0) vars.requestBody.author else it.author),
+    "publicationYear" : (if(sizeOf(vars.requestBody.publicationYear)>0) vars.requestBody.publicationYear else it.publicationYear),
+    "price" : (if(sizeOf(vars.requestBody.price)>0) vars.requestBody.price else it.price)
+})]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "Updated Successfully"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\books:onlinebookstore-config">
+        <http:request method="GET" doc:name="Request" doc:id="e8105d99-80e1-4054-adf2-e8ee5dcd19b6" config-ref="HTTP_Request_configuration" url="http://bookeapi.us-e2.cloudhub.io/retrieve"/>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\books\(isbn):onlinebookstore-config">
+		<ee:transform doc:name="Transform Message" doc:id="34343e62-a5f6-42fc-ac2e-d41919ad9736">
+			<ee:variables>
+				<ee:set-variable variableName="isbn"><![CDATA[attributes.uriParams.'isbn']]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<http:request method="GET" doc:name="Request" doc:id="03db76b0-dc22-4d76-bb25-70a92c7f3b73" config-ref="HTTP_Request_configuration" url="http://bookeapi.us-e2.cloudhub.io/retrieve" >
+		</http:request>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload  filter ((item, index) -> vars.isbn contains  item.isbn) ]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\books:application\json:onlinebookstore-config">
+        <http:request method="POST" doc:name="Request" doc:id="61fcc1dc-c044-4cc5-815b-d486fc5e1136" config-ref="HTTP_Request_configuration" url="http://bookeapi.us-e2.cloudhub.io/post"/>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  Message: "Created Success"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+</mule>
